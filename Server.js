@@ -31,6 +31,6 @@ mongoose.connect(server, {
 app.use('/user', users);
 
 // Start the server
-app.listen(2002, function () {
+app.listen(1996, function () {
     console.log('Server Started ! ! !');
 });
