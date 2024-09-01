@@ -1,7 +1,7 @@
 const { Getusermodal } = require("../modals/UserModal");
 const usermodal = Getusermodal();
 const dotenv = require("dotenv");
-// No need to import bcrypt since we are not using it
+const bcrypt = require("bcrypt"); // Import bcrypt for password hashing
 
 dotenv.config(); // Load environment variables
 
@@ -16,8 +16,11 @@ async function Signup(req, resp) {
       return resp.json({ status: false, msg: "Password is required" });
     }
 
-    // Create new user data with the plaintext password
-    const userData = { ...req.body, password: password };
+    // Hash the password before saving (salt rounds: 10)
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user data with the hashed password
+    const userData = { ...req.body, password: hashedPassword };
 
     // Create new user document
     const doc = new usermodal(userData);
@@ -26,8 +29,8 @@ async function Signup(req, resp) {
     const retdoc = await doc.save();
     resp.json({ status: true, result: retdoc });
   } catch (error) {
-    console.error(error); // Log the error for debugging
-    resp.json({ status: false, msg: "Already have an Account, Login there" });
+    console.error("Signup Error:", error); // Log the error for debugging
+    resp.json({ status: false, msg: "Error occurred during signup" });
   }
 }
 
@@ -43,9 +46,8 @@ async function Login(req, resp) {
       return;
     }
 
-    // Compare entered password with the stored plaintext password
-    // Note: No comparison needed if passwords are stored in plaintext
-    const isPasswordValid = req.body.password === retdoc.password;
+    // Compare entered password with the stored hashed password
+    const isPasswordValid = await bcrypt.compare(req.body.password, retdoc.password);
 
     if (isPasswordValid) {
       // Optionally return user type or other necessary details (excluding sensitive info)
@@ -54,7 +56,7 @@ async function Login(req, resp) {
       resp.json({ status: false, msg: "Password Incorrect" });
     }
   } catch (error) {
-    console.error(error); // Log the error for debugging
+    console.error("Login Error:", error); // Log the error for debugging
     resp.json({ status: false, msg: "Error occurred during login" });
   }
 }
